@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "sysinfo.h"
 
 struct cpu cpus[NCPU];
 
@@ -280,6 +281,9 @@ fork(void)
   if((np = allocproc()) == 0){
     return -1;
   }
+  
+  // Copy trace mask from parent to child
+  np->syscall_mask = p->syscall_mask;
 
   // Copy user memory from parent to child.
   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
@@ -653,4 +657,17 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+// count the number of processes whose state is not UNUSED
+// return the count
+uint64 count_process(void) {
+  struct proc *p;
+  char *state;
+  uint64 count = 0;
+
+  for(p = proc; p < &proc[NPROC]; p++){
+    if(p->state != UNUSED) count++;
+  }
+  return count;
 }
