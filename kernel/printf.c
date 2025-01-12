@@ -118,6 +118,7 @@ void
 panic(char *s)
 {
   pr.locking = 0;
+  backtrace();
   printf("panic: ");
   printf(s);
   printf("\n");
@@ -131,4 +132,16 @@ printfinit(void)
 {
   initlock(&pr.lock, "pr");
   pr.locking = 1;
+}
+
+// print a list of the function calls on the stack
+void 
+backtrace(void) {
+  printf("backtrace:\n");
+  uint64 fp = r_fp();
+  while (fp != 0 && fp > PGROUNDDOWN(fp) && fp < PGROUNDUP(fp)) {
+    uint64 returned_addr = *(uint64 *)(fp - 8);
+    printf("%p\n", returned_addr);
+    fp = *(uint64 *)(fp - 16);
+  }
 }
