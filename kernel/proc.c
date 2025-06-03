@@ -127,6 +127,13 @@ found:
     return 0;
   }
 
+  // Allocate saved_trap BEFORE proceeding
+  if((p->saved_trap = (struct trapframe*)kalloc()) == 0){
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
+
   // An empty user page table.
   p->pagetable = proc_pagetable(p);
   if(p->pagetable == 0){
@@ -141,9 +148,14 @@ found:
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
 
+  // set up proc fields for trap lab
+  p->alarmticks = 0;
+  p->alarmcount = 0;
+  p->alarmhandler = 0;
+  p->in_handler = 0;
+  
   return p;
 }
-
 // free a proc structure and the data hanging from it,
 // including user pages.
 // p->lock must be held.
@@ -153,6 +165,11 @@ freeproc(struct proc *p)
   if(p->trapframe)
     kfree((void*)p->trapframe);
   p->trapframe = 0;
+  
+  if(p->saved_trap)
+    kfree((char*)p->saved_trap);
+  p->saved_trap = 0;  // Add this line
+  
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
   p->pagetable = 0;
@@ -165,7 +182,6 @@ freeproc(struct proc *p)
   p->xstate = 0;
   p->state = UNUSED;
 }
-
 // Create a user page table for a given process,
 // with no user memory, but with trampoline pages.
 pagetable_t

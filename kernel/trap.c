@@ -67,6 +67,49 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
+    if(which_dev == 2 && p->in_handler == 0) {
+      ++p->alarmcount;
+      if (p->alarmcount == p->alarmticks && p->alarmticks != 0 && p->saved_trap != 0) {
+        // if(p->saved_trap != 0) {
+          p->alarmcount = 0;
+          p->in_handler = 1;
+          p->saved_trap->epc  = p->trapframe->epc;
+          p->saved_trap->ra   = p->trapframe->ra;
+          p->saved_trap->sp   = p->trapframe->sp;
+          p->saved_trap->gp   = p->trapframe->gp;
+          p->saved_trap->tp   = p->trapframe->tp;
+          p->saved_trap->t0   = p->trapframe->t0;
+          p->saved_trap->t1   = p->trapframe->t1;
+          p->saved_trap->t2   = p->trapframe->t2;
+          p->saved_trap->t3   = p->trapframe->t3;
+          p->saved_trap->t4   = p->trapframe->t4;
+          p->saved_trap->t5   = p->trapframe->t5;
+          p->saved_trap->t6   = p->trapframe->t6;
+          p->saved_trap->s0   = p->trapframe->s0;
+          p->saved_trap->s1   = p->trapframe->s1;
+          p->saved_trap->s2   = p->trapframe->s2;
+          p->saved_trap->s3   = p->trapframe->s3;
+          p->saved_trap->s4   = p->trapframe->s4;
+          p->saved_trap->s5   = p->trapframe->s5;
+          p->saved_trap->s6   = p->trapframe->s6;
+          p->saved_trap->s7   = p->trapframe->s7;
+          p->saved_trap->s8   = p->trapframe->s8;
+          p->saved_trap->s9   = p->trapframe->s9;
+          p->saved_trap->s10  = p->trapframe->s10;
+          p->saved_trap->s11  = p->trapframe->s11;
+          p->saved_trap->a0   = p->trapframe->a0;
+          p->saved_trap->a1   = p->trapframe->a1;
+          p->saved_trap->a2   = p->trapframe->a2;
+          p->saved_trap->a3   = p->trapframe->a3;
+          p->saved_trap->a4   = p->trapframe->a4;
+          p->saved_trap->a5   = p->trapframe->a5;
+          p->saved_trap->a6   = p->trapframe->a6;
+          p->saved_trap->a7   = p->trapframe->a7;
+          p->trapframe->epc = (uint64)p->alarmhandler;
+        }
+
+      // }
+    }
   } else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
@@ -77,8 +120,9 @@ usertrap(void)
     exit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
+  if(which_dev == 2) {
     yield();
+  }
 
   usertrapret();
 }
@@ -164,6 +208,10 @@ clockintr()
 {
   acquire(&tickslock);
   ticks++;
+  struct proc *p = myproc();
+  if(p != 0) {
+    p->alarmcount++;
+  }
   wakeup(&ticks);
   release(&tickslock);
 }
