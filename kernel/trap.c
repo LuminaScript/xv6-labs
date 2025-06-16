@@ -70,7 +70,6 @@ usertrap(void)
     if(which_dev == 2 && p->in_handler == 0) {
       ++p->alarmcount;
       if (p->alarmcount == p->alarmticks && p->alarmticks != 0 && p->saved_trap != 0) {
-        // if(p->saved_trap != 0) {
           p->alarmcount = 0;
           p->in_handler = 1;
           p->saved_trap->epc  = p->trapframe->epc;
@@ -107,8 +106,6 @@ usertrap(void)
           p->saved_trap->a7   = p->trapframe->a7;
           p->trapframe->epc = (uint64)p->alarmhandler;
         }
-
-      // }
     }
   } else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
