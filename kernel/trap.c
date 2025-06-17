@@ -50,7 +50,11 @@ usertrap(void)
   // save user program counter.
   p->trapframe->epc = r_sepc();
   
-  if(r_scause() == 8){
+  if (r_scause() == 15 && uvmcheckcowpage(r_stval())) {
+    if(uvmcowcopy(r_stval()) == -1){ // 如果内存不足，则杀死进程
+      p->killed = 1;
+    }
+  } else if(r_scause() == 8){
     // system call
 
     if(p->killed)
@@ -68,6 +72,7 @@ usertrap(void)
   } else if((which_dev = devintr()) != 0){
     // ok
   } else {
+    printf("trap cause %d\n", r_scause());
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
     p->killed = 1;
